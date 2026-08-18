@@ -130,3 +130,4 @@ def log_intent_vs_outcome(intent: str, outcome: str, session_id: Optional[str] =
         "session_id": session_id or "unknown-session",
     }
     structured_logger.info("Captured Intent vs. Outcome event", extra=extra)
+

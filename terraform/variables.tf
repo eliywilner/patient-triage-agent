@@ -14,3 +14,4 @@ variable "agent_runtime_id" {
   description = "Vertex AI Reasoning Engine Agent Runtime Resource ID"
   default     = "projects/304059275718/locations/us-east1/reasoningEngines/1852334045174693888"
 }
+

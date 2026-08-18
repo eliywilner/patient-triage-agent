@@ -12,3 +12,4 @@ output "push_subscription_id" {
   value       = google_pubsub_subscription.push_sub.id
   description = "Resource ID of the OIDC push subscription"
 }
+
