@@ -1,28 +1,24 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
+# Ignore virtual environments
 .venv/
+venv/
 ENV/
 
-# Credentials & Sensitive Local Files
-*.key
-*.pem
-.env
-.env.*
-secrets/
-deployment_metadata.json
+# Ignore Python cache & build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+build/
 
-# IDEs
+# Ignore deployment metadata & runtime state
+deployment_metadata.json
+*.env
+.env.*
+
+# Ignore OS & IDE files
+.DS_Store
 .idea/
 .vscode/
-*.swp
-
-# OS
-.DS_Store
-Thumbs.db
-

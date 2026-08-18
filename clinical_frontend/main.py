@@ -13,12 +13,9 @@ import google.auth.transport.requests
 
 app = FastAPI(title="Doctor Triage Portal & Clinical Dashboard", version="1.0.0")
 
-PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "eliwilner-111881")
+PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-east1")
-AGENT_RUNTIME_ID = os.environ.get(
-    "AGENT_RUNTIME_ID",
-    "projects/304059275718/locations/us-east1/reasoningEngines/939792170678747136"
-)
+AGENT_RUNTIME_ID = os.environ.get("AGENT_RUNTIME_ID", "")
 
 
 def get_numeric_engine_id(resource_path: str) -> str:

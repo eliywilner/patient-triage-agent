@@ -2,8 +2,16 @@
 # Deploy Patient Triage Agent to Vertex AI Agent Runtime using ADK CLI
 set -e
 
-PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-eliwilner-111881}"
+export PATH="$PATH:/Users/eliwilner/google-cloud-sdk/bin:/opt/homebrew/bin:/usr/local/bin"
+
+PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
 LOCATION="${GOOGLE_CLOUD_LOCATION:-us-east1}"
+
+if [ -z "$PROJECT_ID" ]; then
+  echo "Error: GOOGLE_CLOUD_PROJECT environment variable is not set and no active gcloud project found."
+  echo "Please run: export GOOGLE_CLOUD_PROJECT='your-project-id'"
+  exit 1
+fi
 
 echo "=================================================="
 echo "🚀 Deploying Patient Triage Agent via ADK CLI"
@@ -27,4 +35,3 @@ $ADK_BIN deploy agent_engine patient-triage-agent \
 echo "=================================================="
 echo "✅ Patient Triage Agent Deployment Complete!"
 echo "=================================================="
-

@@ -152,3 +152,4 @@ gcloud pubsub topics publish patient-triage-reports \
 * **Zero Hardcoded Secrets**: All environment variables and project credentials are supplied dynamically at runtime.
 * **OIDC Token Authentication**: The Pub/Sub push subscription authenticates every request using short-lived GCP OIDC tokens.
 * **Audit Trail**: Every physician review decision is immutably logged in ADK event session history.
+
