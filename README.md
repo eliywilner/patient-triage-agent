@@ -4,14 +4,6 @@ An event-driven, production-grade **Ambient Patient Triage Agent** built with th
 
 ---
 
-## 📸 Doctor Triage Portal UI
-
-![Doctor Triage Portal Dashboard](assets/doctor_portal_dashboard.png)
-
-*The Doctor Triage Portal displays live pending patient cases requiring immediate physician evaluation. When clinical red flags are detected, the agent pauses execution via `RequestInput` until an attending physician reviews vital signs and submits an action.*
-
----
-
 ## 🌟 Overview & Problem Statement
 
 Emergency lines and telehealth portals are overwhelmed with patient symptom submissions. Delays in identifying critical red flags (such as chest pain, high fever, or low oxygen saturation) can lead to severe medical complications and physician burnout.
