@@ -1,5 +1,6 @@
 """Ambient Healthcare & Patient Triage Agent Package."""
-from .agent import root_agent
+from .agent import agent
 
-__all__ = ["root_agent"]
+root_agent = agent
 
+__all__ = ["agent", "root_agent"]
