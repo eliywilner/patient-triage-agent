@@ -2,13 +2,14 @@
 
 This module provides enterprise-grade observability for the Patient Triage Agent,
 including structured JSON log formatting, intent vs. outcome logging,
-OpenTelemetry distributed tracing, and automated PII redaction.
+OpenTelemetry distributed tracing with active start_as_current_span instrumentation, and automated PII redaction.
 """
 
 import json
 import logging
 import re
-from typing import Any, Dict, Optional
+from contextlib import contextmanager
+from typing import Any, Dict, Generator, Optional
 
 try:
     from opentelemetry import trace
@@ -22,6 +23,27 @@ try:
     tracer = trace.get_tracer("patient-triage-agent")
 except Exception:
     tracer = None
+
+
+@contextmanager
+def trace_span(name: str, attributes: Optional[Dict[str, Any]] = None) -> Generator[Any, None, None]:
+    """OpenTelemetry span context manager actively wrapping operations with start_as_current_span.
+
+    Args:
+        name (str): Span name identifier (e.g. 'query_to_answer_span').
+        attributes (Optional[Dict[str, Any]]): Key-value span attributes.
+
+    Yields:
+        Generator[Any, None, None]: Active OpenTelemetry span object or None.
+    """
+    if tracer:
+        with tracer.start_as_current_span(name) as span:
+            if attributes:
+                for key, val in attributes.items():
+                    span.set_attribute(key, str(val))
+            yield span
+    else:
+        yield None
 
 
 class PIIRedactor(logging.Filter):
@@ -117,17 +139,17 @@ structured_logger = get_structured_logger()
 
 
 def log_intent_vs_outcome(intent: str, outcome: str, session_id: Optional[str] = None) -> None:
-    """Logs the captured intent vs. final agent outcome.
+    """Logs the captured intent vs. final agent outcome wrapped in an OpenTelemetry span.
 
     Args:
         intent (str): The user/patient's intent or query text.
         outcome (str): The agent's clinical triage outcome decision.
         session_id (Optional[str]): Active ADK session identifier.
     """
-    extra = {
-        "intent": intent,
-        "outcome": outcome,
-        "session_id": session_id or "unknown-session",
-    }
-    structured_logger.info("Captured Intent vs. Outcome event", extra=extra)
-
+    with trace_span("intent_vs_outcome_span", attributes={"intent": intent, "outcome": outcome, "session_id": session_id or "unknown"}):
+        extra = {
+            "intent": intent,
+            "outcome": outcome,
+            "session_id": session_id or "unknown-session",
+        }
+        structured_logger.info("Captured Intent vs. Outcome event", extra=extra)

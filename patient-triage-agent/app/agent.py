@@ -15,7 +15,7 @@ from google.adk import Agent, Context
 from google.adk.tools import request_input
 from google.adk.sessions import VertexAiSessionService, InMemorySessionService
 
-from app.observability import structured_logger, log_intent_vs_outcome, PIIRedactor
+from app.observability import structured_logger, log_intent_vs_outcome, PIIRedactor, trace_span
 
 # ==============================================================================
 # 1. SYSTEM CONSTITUTION & SAFETY POLICIES
@@ -216,10 +216,10 @@ def evaluate_guardrails(text: str) -> Dict[str, Any]:
 # 6. STRATEGIC MODEL ROUTING & MULTI-AGENT DEFINITIONS
 # ==============================================================================
 # Strategic Model Routing:
-# Fast model (Gemini 3.6 Flash) for routine parsing;
-# Reasoning model (Gemini 3.6 Pro) for complex red-flag physician evaluations.
-MODEL_FAST = os.environ.get("MODEL_FLASH", "gemini-3.6-flash")
-MODEL_REASONING = os.environ.get("MODEL_PRO", "gemini-3.6-pro")
+# Fast model (Gemini 2.5 Flash) for routine parsing;
+# Reasoning model (Gemini 2.5 Pro) for complex red-flag physician evaluations.
+MODEL_FAST = os.environ.get("MODEL_FLASH", "gemini-2.5-flash")
+MODEL_REASONING = os.environ.get("MODEL_PRO", "gemini-2.5-pro")
 
 symptom_classifier_agent = Agent(
     name="symptom_classifier_agent",
@@ -264,70 +264,71 @@ def parse_and_triage_symptoms(message: Any, session_id: str = "default-session")
     Returns:
         Dict[str, Any]: Parsed symptom report and triage routing decision.
     """
-    if isinstance(message, dict):
-        parts = message.get("parts", [])
-        if parts and isinstance(parts[0], dict):
-            user_msg = parts[0].get("text", "")
+    with trace_span("parse_and_triage_symptoms_span", attributes={"session_id": session_id}):
+        if isinstance(message, dict):
+            parts = message.get("parts", [])
+            if parts and isinstance(parts[0], dict):
+                user_msg = parts[0].get("text", "")
+            else:
+                user_msg = str(message)
         else:
             user_msg = str(message)
-    else:
-        user_msg = str(message)
 
-    guard_res = evaluate_guardrails(user_msg)
-    clean_text = guard_res["clean_text"]
+        guard_res = evaluate_guardrails(user_msg)
+        clean_text = guard_res["clean_text"]
 
-    red_flags = []
-    temp = 98.6
-    spo2 = 98
+        red_flags = []
+        temp = 98.6
+        spo2 = 98
 
-    if "103.2" in clean_text or "102.5" in clean_text or "fever" in clean_text.lower():
-        temp = 103.2
-        red_flags.append("High Fever (>= 102.5°F)")
-    if "90%" in clean_text or "91%" in clean_text or "hypoxia" in clean_text.lower():
-        spo2 = 90
-        red_flags.append("Hypoxia (SpO2 < 93%)")
-    if "chest pain" in clean_text.lower():
-        red_flags.append("Severe Acute Chest Pain")
+        if "103.2" in clean_text or "102.5" in clean_text or "fever" in clean_text.lower():
+            temp = 103.2
+            red_flags.append("High Fever (>= 102.5°F)")
+        if "90%" in clean_text or "91%" in clean_text or "hypoxia" in clean_text.lower():
+            spo2 = 90
+            red_flags.append("Hypoxia (SpO2 < 93%)")
+        if "chest pain" in clean_text.lower():
+            red_flags.append("Severe Acute Chest Pain")
 
-    is_urgent = len(red_flags) > 0
+        is_urgent = len(red_flags) > 0
 
-    report = PatientSymptomReport(
-        patient_id="PAT-1001",
-        patient_name="Jane Doe",
-        age=35,
-        primary_symptom=clean_text,
-        vitals=VitalSigns(temperature_f=temp, oxygen_sat_pct=spo2, heart_rate_bpm=115),
-        is_urgent=is_urgent,
-        red_flags=red_flags,
-    )
-
-    if is_urgent:
-        decision = TriageDecision(
-            action="PHYSICIAN_INTERRUPT_REQUIRED",
-            urgency_level="CRITICAL_RED_FLAG",
-            summary=f"Critical red flags detected: {red_flags}. Solicted physician review.",
-            physician_notes="Pending attending physician review."
-        )
-    else:
-        decision = TriageDecision(
-            action="AUTOMATED_ROUTINE",
-            urgency_level="LOW",
-            summary="Patient exhibits stable vitals. Automated self-care guidance issued with routine nurse follow-up.",
-            physician_notes="Automated triage: No clinical red flags detected."
+        report = PatientSymptomReport(
+            patient_id="PAT-1001",
+            patient_name="Jane Doe",
+            age=35,
+            primary_symptom=clean_text,
+            vitals=VitalSigns(temperature_f=temp, oxygen_sat_pct=spo2, heart_rate_bpm=115),
+            is_urgent=is_urgent,
+            red_flags=red_flags,
         )
 
-    log_intent_vs_outcome(
-        intent=clean_text,
-        outcome=decision.summary,
-        session_id=session_id
-    )
+        if is_urgent:
+            decision = TriageDecision(
+                action="PHYSICIAN_INTERRUPT_REQUIRED",
+                urgency_level="CRITICAL_RED_FLAG",
+                summary=f"Critical red flags detected: {red_flags}. Solicted physician review.",
+                physician_notes="Pending attending physician review."
+            )
+        else:
+            decision = TriageDecision(
+                action="AUTOMATED_ROUTINE",
+                urgency_level="LOW",
+                summary="Patient exhibits stable vitals. Automated self-care guidance issued with routine nurse follow-up.",
+                physician_notes="Automated triage: No clinical red flags detected."
+            )
 
-    return {
-        "status": "TRIAGE_COMPLETE",
-        "patient_report": report.model_dump(),
-        "triage_decision": decision.model_dump(),
-        "constitution_compliance": "VERIFIED_100_PERCENT"
-    }
+        log_intent_vs_outcome(
+            intent=clean_text,
+            outcome=decision.summary,
+            session_id=session_id
+        )
+
+        return {
+            "status": "TRIAGE_COMPLETE",
+            "patient_report": report.model_dump(),
+            "triage_decision": decision.model_dump(),
+            "constitution_compliance": "VERIFIED_100_PERCENT"
+        }
 
 
 class PatientTriageReasoningEngine:
@@ -361,13 +362,14 @@ class PatientTriageReasoningEngine:
             Dict[str, Any]: Triage execution result.
         """
         sid = session_id or "default-triage-session"
-        try:
-            sess_obj = self.session_service.get_session(app_name="patient_triage_agent", session_id=sid, user_id=user_id or "default-user")
-            if hasattr(sess_obj, "close"):
-                sess_obj.close()
-        except Exception:
-            pass
-        return parse_and_triage_symptoms(message, session_id=sid)
+        with trace_span("query_to_answer", attributes={"session_id": sid, "user_id": user_id or "default-user"}):
+            try:
+                sess_obj = self.session_service.get_session(app_name="patient_triage_agent", session_id=sid, user_id=user_id or "default-user")
+                if hasattr(sess_obj, "close"):
+                    sess_obj.close()
+            except Exception:
+                pass
+            return parse_and_triage_symptoms(message, session_id=sid)
 
 
 agent = PatientTriageReasoningEngine()
