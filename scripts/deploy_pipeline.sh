@@ -2,8 +2,6 @@
 # Deploy Pub/Sub Event Pipeline for Patient Triage Agent
 set -e
 
-export PATH="$PATH:/Users/eliwilner/google-cloud-sdk/bin:/opt/homebrew/bin:/usr/local/bin"
-
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
 LOCATION="${GOOGLE_CLOUD_LOCATION:-us-east1}"
 AGENT_RUNTIME_ID="${1:-}"
@@ -22,6 +20,7 @@ fi
 
 if [ -z "$AGENT_RUNTIME_ID" ]; then
   echo "Error: AGENT_RUNTIME_ID not provided and deployment_metadata.json not found."
+  echo "Usage: ./scripts/deploy_pipeline.sh <AGENT_RUNTIME_ID>"
   exit 1
 fi
 

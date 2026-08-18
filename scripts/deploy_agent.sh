@@ -2,8 +2,6 @@
 # Deploy Patient Triage Agent to Vertex AI Agent Runtime using ADK CLI
 set -e
 
-export PATH="$PATH:/Users/eliwilner/google-cloud-sdk/bin:/opt/homebrew/bin:/usr/local/bin"
-
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
 LOCATION="${GOOGLE_CLOUD_LOCATION:-us-east1}"
 
@@ -19,11 +17,18 @@ echo "• Project:  ${PROJECT_ID}"
 echo "• Location: ${LOCATION}"
 echo "=================================================="
 
+# Dynamically locate the adk CLI binary
 ADK_BIN="adk"
-if [ -f "/Users/eliwilner/google/onboarding/.venv/bin/adk" ]; then
-    ADK_BIN="/Users/eliwilner/google/onboarding/.venv/bin/adk"
+if command -v adk &> /dev/null; then
+    ADK_BIN="adk"
 elif [ -f ".venv/bin/adk" ]; then
     ADK_BIN=".venv/bin/adk"
+elif [ -f "../.venv/bin/adk" ]; then
+    ADK_BIN="../.venv/bin/adk"
+else
+    echo "Error: 'adk' command line tool not found in PATH or .venv."
+    echo "Please install ADK with: pip install google-adk"
+    exit 1
 fi
 
 $ADK_BIN deploy agent_engine patient-triage-agent \

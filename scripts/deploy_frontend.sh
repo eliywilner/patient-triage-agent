@@ -2,8 +2,6 @@
 # Deploy Doctor Triage Portal to Cloud Run
 set -e
 
-export PATH="$PATH:/Users/eliwilner/google-cloud-sdk/bin:/opt/homebrew/bin:/usr/local/bin"
-
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
 LOCATION="${GOOGLE_CLOUD_LOCATION:-us-east1}"
 AGENT_RUNTIME_ID="${1:-}"
