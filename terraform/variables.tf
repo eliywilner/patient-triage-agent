@@ -11,7 +11,17 @@ variable "region" {
 
 variable "agent_runtime_id" {
   type        = string
-  description = "Vertex AI Reasoning Engine Agent Runtime Resource ID"
-  default     = "projects/304059275718/locations/us-east1/reasoningEngines/1852334045174693888"
+  description = "Vertex AI Reasoning Engine Agent Runtime Resource ID (e.g. projects/{project_id}/locations/us-east1/reasoningEngines/{reasoning_engine_id})"
 }
 
+variable "model_flash" {
+  type        = string
+  description = "Fast Gemini model for routine classification tasks"
+  default     = "gemini-2.5-flash"
+}
+
+variable "model_pro" {
+  type        = string
+  description = "Reasoning Gemini model for complex red-flag physician evaluations"
+  default     = "gemini-2.5-pro"
+}

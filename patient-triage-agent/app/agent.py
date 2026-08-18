@@ -218,8 +218,8 @@ def evaluate_guardrails(text: str) -> Dict[str, Any]:
 # Strategic Model Routing:
 # Fast model (Gemini 2.5 Flash) for routine parsing;
 # Reasoning model (Gemini 2.5 Pro) for complex red-flag physician evaluations.
-MODEL_FAST = "gemini-2.5-flash"
-MODEL_REASONING = "gemini-2.5-pro"
+MODEL_FAST = os.environ.get("MODEL_FLASH", "gemini-2.5-flash")
+MODEL_REASONING = os.environ.get("MODEL_PRO", "gemini-2.5-pro")
 
 symptom_classifier_agent = Agent(
     name="symptom_classifier_agent",
