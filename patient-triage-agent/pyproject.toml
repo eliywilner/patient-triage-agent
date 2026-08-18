@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "patient-triage-agent"
+version = "0.1.0"
+description = "Ambient Healthcare & Patient Triage Agent with ADK Workflow"
+dependencies = [
+    "google-adk[gcp]>=2.7.0",
+    "pydantic>=2.0.0",
+    "google-genai>=2.0.0",
+    "google-cloud-aiplatform>=1.60.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
