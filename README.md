@@ -1,6 +1,6 @@
 # 🏥 Ambient Healthcare & Patient Triage Agent ("Agents for Good" Track)
 
-An event-driven, production-grade **Ambient Patient Triage Agent** built with the **Google Agent Development Kit (ADK)**, featuring a **Multi-Agent Hierarchy** with **Strategic Model Routing** (`gemini-2.5-flash` & `gemini-2.5-pro`), a clinical **System Constitution**, **PII Redaction Guardrails**, **Structured JSON Logging & OpenTelemetry Tracing**, **Declarative Terraform IaC**, an **Automated Evaluation Suite**, and an OIDC-authenticated **Pub/Sub push pipeline** backed by **Google Cloud Firestore** session persistence and a glassmorphic **Doctor Triage Portal on Cloud Run**.
+An event-driven, production-grade **Ambient Patient Triage Agent** built with the **Google Agent Development Kit (ADK)**, featuring a **Multi-Agent Hierarchy** with **Strategic Model Routing** (`gemini-3.6-flash` & `gemini-3.6-pro`), a clinical **System Constitution**, **PII Redaction Guardrails**, **Structured JSON Logging & OpenTelemetry Tracing**, **Declarative Terraform IaC**, an **Automated Evaluation Suite**, and an OIDC-authenticated **Pub/Sub push pipeline** backed by **Google Cloud Firestore** session persistence and a glassmorphic **Doctor Triage Portal on Cloud Run**.
 
 ---
 
@@ -9,8 +9,8 @@ An event-driven, production-grade **Ambient Patient Triage Agent** built with th
 Emergency lines and telehealth portals are overwhelmed with patient symptom submissions. Delays in identifying critical red flags (such as chest pain, high fever, or low oxygen saturation) can lead to severe medical complications and physician burnout.
 
 This project addresses this challenge by deploying an intelligent **Ambient Patient Triage Agent**:
-* **Routine Cases**: Automatically triages low-risk symptoms (e.g. mild allergies or nasal congestion) with fast model routing (`gemini-2.5-flash`) and automated self-care guidance.
-* **Red Flag Cases**: Instantly detects critical clinical red flags (Temp $\ge$ 102.5°F, SpO2 $< 93\%$, BP $\ge$ 160 mmHg, or severe symptom keywords) using reasoning models (`gemini-2.5-pro`) and triggers a **Human-in-the-Loop Physician Review Interrupt**. Execution pauses safely until an attending physician submits a decision (e.g. "APPROVE_ER") on the **Doctor Triage Portal**.
+* **Routine Cases**: Automatically triages low-risk symptoms (e.g. mild allergies or nasal congestion) with fast model routing (`gemini-3.6-flash`) and automated self-care guidance.
+* **Red Flag Cases**: Instantly detects critical clinical red flags (Temp $\ge$ 102.5°F, SpO2 $< 93\%$, BP $\ge$ 160 mmHg, or severe symptom keywords) using reasoning models (`gemini-3.6-pro`) and triggers a **Human-in-the-Loop Physician Review Interrupt**. Execution pauses safely until an attending physician submits a decision (e.g. "APPROVE_ER") on the **Doctor Triage Portal**.
 
 ---
 
@@ -22,8 +22,8 @@ flowchart TD
     B -->|"OIDC Authenticated Push\n(--push-no-wrapper)"| C["🤖 Vertex AI Agent Runtime\n(patient_triage_root_agent)"]
     
     C --> D{"🩺 Multi-Agent Hierarchy\nRed Flags Detected?"}
-    D -->|"Routine Care\n(gemini-2.5-flash)"| E["🟢 Auto-Triage Routine Care"]
-    D -->|"Critical Red Flags\n(gemini-2.5-pro)"| F["🚨 RequestInput Interrupt\n(doctor_review pause)"]
+    D -->|"Routine Care\n(gemini-3.6-flash)"| E["🟢 Auto-Triage Routine Care"]
+    D -->|"Critical Red Flags\n(gemini-3.6-pro)"| F["🚨 RequestInput Interrupt\n(doctor_review pause)"]
     
     F -->|"Persists Session State"| G["🔥 Google Cloud Firestore\n(VertexAiSessionService)"]
     G <-->|"Queries Pending Interrupts"| H["🏥 Doctor Triage Portal\n(Cloud Run)"]
@@ -52,7 +52,7 @@ flowchart TD
 
 ### 3. Orchestration & Multi-Agent Logic
 * **Multi-Agent Hierarchy**: ADK `root_agent` orchestrating sub-agents (`symptom_classifier_agent`, `physician_review_agent`, `care_plan_agent`).
-* **Strategic Model Routing**: Routes routine symptom classification to fast models (`gemini-2.5-flash`) and complex red-flag physician evaluations to deep reasoning models (`gemini-2.5-pro`).
+* **Strategic Model Routing**: Routes routine symptom classification to fast models (`gemini-3.6-flash`) and complex red-flag physician evaluations to deep reasoning models (`gemini-3.6-pro`).
 * **Clinical Safety Guardrails**: Integrated `evaluate_guardrails` checking medical policy compliance and prescription safety before response generation.
 
 ### 4. Observability, Tracing & PII Redaction

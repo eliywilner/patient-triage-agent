@@ -17,11 +17,11 @@ variable "agent_runtime_id" {
 variable "model_flash" {
   type        = string
   description = "Fast Gemini model for routine classification tasks"
-  default     = "gemini-2.5-flash"
+  default     = "gemini-3.6-flash"
 }
 
 variable "model_pro" {
   type        = string
   description = "Reasoning Gemini model for complex red-flag physician evaluations"
-  default     = "gemini-2.5-pro"
+  default     = "gemini-3.6-pro"
 }
