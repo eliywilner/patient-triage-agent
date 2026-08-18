@@ -1,0 +1,26 @@
+# Ignore virtual environments
+.venv/
+venv/
+ENV/
+
+# Ignore Python cache & build artifacts
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Ignore deployment metadata & runtime state
+deployment_metadata.json
+*.env
+.env.*
+
+# Ignore OS & IDE files
+.DS_Store
+.idea/
+.vscode/
