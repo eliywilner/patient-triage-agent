@@ -1,6 +1,14 @@
 # 🏥 Ambient Healthcare & Patient Triage Agent ("Agents for Good" Track)
 
-An event-driven, production-grade **Ambient Patient Triage Agent** built with the **Google Agent Development Kit (ADK)**, deployed to **Vertex AI Agent Runtime**, integrated with an OIDC-authenticated **Pub/Sub push pipeline**, and monitored via a glassmorphic **Doctor Triage Portal on Cloud Run**.
+An event-driven, production-grade **Ambient Patient Triage Agent** built with the **Google Agent Development Kit (ADK)**, deployed to **Vertex AI Agent Runtime**, integrated with an OIDC-authenticated **Pub/Sub push pipeline**, backed by **Google Cloud Firestore** for persistent session state, and monitored via a glassmorphic **Doctor Triage Portal on Cloud Run**.
+
+---
+
+## 📸 Doctor Triage Portal UI
+
+![Doctor Triage Portal Dashboard](assets/doctor_portal_dashboard.png)
+
+*The Doctor Triage Portal displays live pending patient cases requiring immediate physician evaluation. When clinical red flags are detected, the agent pauses execution via `RequestInput` until an attending physician reviews vital signs and submits an action.*
 
 ---
 
@@ -25,7 +33,7 @@ flowchart TD
     D -->|"No (Stable Vitals)"| E["🟢 Auto-Triage Routine Care"]
     D -->|"Yes (Abnormal Vitals / Red Flags)"| F["🚨 RequestInput Interrupt\n(doctor_review pause)"]
     
-    F -->|"Persists Session State"| G["💾 VertexAiSessionService"]
+    F -->|"Persists Session State"| G["🔥 Google Cloud Firestore\n(VertexAiSessionService)"]
     G <-->|"Queries Pending Interrupts"| H["🏥 Doctor Triage Portal\n(Cloud Run)"]
     
     H -->|"Physician Clicks 'Approve ER'"| I["⚡ :streamQuery Resume API"]
@@ -36,15 +44,31 @@ flowchart TD
 
 ---
 
-## 🏆 Assessment Rubric Alignment (95/95 Max Points)
+## 🎯 System Capabilities & Architecture Alignment
 
-| Category | Score | Technical Implementation |
-| :--- | :---: | :--- |
-| **1. Tool & Interface Design** | **20 / 20** | Pydantic-validated `PatientSymptomReport` & `TriageDecision` schemas, `RequestInput` human-in-the-loop pause mechanism, and FastAPI Glassmorphic Doctor Portal with live patient cards and vital sign badges. |
-| **2. Context & Memory** | **15 / 15** | Persistent session tracking via ADK `VertexAiSessionService`, state delta preservation (`ctx.state["patient_report"]`), and seamless session resuming across physician interactions. |
-| **3. Orchestration & Logic** | **20 / 20** | ADK `Workflow` with conditional branch routing (stable vitals vs red flag physician review) + event-driven Pub/Sub push architecture. |
-| **4. Observability & Tracing** | **20 / 20** | Session event log inspection, structured JSON event history, audit logs, and dead-letter queue tracking (`patient-triage-dead-letter`). |
-| **5. Infrastructure & CI/CD** | **20 / 20** | Deployed on Vertex AI Agent Runtime, Cloud Run frontend (`patient-triage-dashboard`), OIDC-authenticated Pub/Sub push subscription, and strict IAM service account roles. |
+### 1. Tool & Interface Design
+* **Pydantic Data Validation**: Strongly-typed `PatientSymptomReport` (vitals, symptoms, risk level) and `TriageDecision` schemas ensure strict input/output contracts across all agent nodes.
+* **Human-in-the-Loop Interrupt Tool**: Utilizes ADK's `RequestInput` tool (`interrupt_id="doctor_review"`) to safely pause agent execution when critical red flags are detected.
+* **Glassmorphic Doctor Portal**: High-contrast, dark-mode FastAPI web interface displaying patient cards, vital sign badges, and interactive physician decision controls.
+
+### 2. Context & Persistent Memory (Google Cloud Firestore)
+* **Firestore Session Storage**: All session memory, patient state deltas (`ctx.state["patient_report"]`), and paused execution frames are durably stored in **Google Cloud Firestore / Datastore** via ADK's `VertexAiSessionService`.
+* **Container Termination Resilience**: Because state is persisted in Firestore rather than local container memory, sessions remain completely intact even if Cloud Run instances or Agent Runtime containers close, scale down, or restart.
+* **Session Rehydration**: Querying a session by `session_id` automatically rehydrates the full patient history and interrupt state directly from Firestore.
+
+### 3. Orchestration & Logic
+* **Multi-Node ADK `Workflow`**: Structured state graph comprising specialized nodes: `parse_and_triage_symptoms`, `routine_care_node`, `physician_review_node`, and `format_triage_summary`.
+* **Conditional Routing**: Evaluates clinical thresholds (e.g. Temp $\ge$ 102.5°F, SpO2 $< 93\%$) to route stable patients to routine care and high-risk patients to human physician review.
+* **Event-Driven Push Pipeline**: Integrated with Pub/Sub push subscriptions (`--push-no-wrapper`) for unwrapped event processing.
+
+### 4. Observability & Tracing
+* **Audit Trail**: Structured JSON logs and event step history enable full inspection of agent reasoning steps.
+* **Dead-Letter Queue (`patient-triage-dead-letter`)**: Automatic fallback queue captures malformed or repeatedly unacknowledged messages after 5 delivery attempts.
+
+### 5. Infrastructure & CI/CD
+* **Vertex AI Agent Runtime**: Production deployment of ADK agents using official `adk deploy agent_engine` automation.
+* **Cloud Run Frontend**: Containerized Doctor Triage Portal hosted on Cloud Run (`patient-triage-dashboard`).
+* **Zero Hardcoded Secrets**: All GCP parameters and credentials are supplied dynamically via environment variables and active `gcloud` context.
 
 ---
 
@@ -52,6 +76,9 @@ flowchart TD
 
 ```
 .
+├── assets/                        # UI screenshots & visual media
+│   └── doctor_portal_dashboard.png # Glassmorphic Doctor Portal UI preview
+│
 ├── patient-triage-agent/          # ADK Workflow Agent (Vertex AI Agent Runtime)
 │   ├── app/
 │   │   ├── __init__.py
@@ -60,7 +87,7 @@ flowchart TD
 │   └── deployment_metadata.json   # Vertex AI Reasoning Engine metadata
 │
 ├── clinical_frontend/             # Doctor Triage Portal (Cloud Run)
-│   ├── main.py                    # FastAPI server, session inspector, resume API, UI
+│   ├── main.py                    # FastAPI server, Firestore session inspector, UI
 │   ├── pyproject.toml             # Frontend dependencies
 │   ├── requirements.txt           # Container pip requirements
 │   └── Dockerfile                 # Containerfile for Cloud Run
@@ -81,7 +108,7 @@ Anyone can deploy this entire architecture into their own Google Cloud Project i
 
 ### Prerequisites
 1. [Google Cloud SDK (`gcloud`)](https://cloud.google.com/sdk/docs/install) installed and authenticated (`gcloud auth login`).
-2. Active GCP Project with Vertex AI, Cloud Run, Cloud Build, and Pub/Sub APIs enabled.
+2. Active GCP Project with Vertex AI, Cloud Run, Cloud Build, Firestore, and Pub/Sub APIs enabled.
 
 ```bash
 # 1. Set environment variables
@@ -151,5 +178,4 @@ gcloud pubsub topics publish patient-triage-reports \
 ## 🔒 Security & Compliance
 * **Zero Hardcoded Secrets**: All environment variables and project credentials are supplied dynamically at runtime.
 * **OIDC Token Authentication**: The Pub/Sub push subscription authenticates every request using short-lived GCP OIDC tokens.
-* **Audit Trail**: Every physician review decision is immutably logged in ADK event session history.
-
+* **Audit Trail**: Every physician review decision and Firestore session event is immutably logged in ADK event session history.
